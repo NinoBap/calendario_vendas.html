@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Calendário de Vendas</title>
+<style>
+:root{--bg:#fff;--surface:#f5f5f5;--surface-raised:#fff;--border:#e0e0e0;--text-primary:#111;--text-secondary:#555;--text-tertiary:#888;--text-quaternary:#bbb;--accent:#2563eb;--positive:#16a34a;--danger:#dc2626;--chart-1:#2563eb;--chart-2:#dc2626;--chart-4:#9333ea;--chart-5:#6b7280}
+@media(prefers-color-scheme:dark){:root{--bg:#0a0a0a;--surface:#1a1a1a;--surface-raised:#222;--border:#333;--text-primary:#eee;--text-secondary:#aaa;--text-tertiary:#777;--text-quaternary:#444;--accent:#3b82f6;--positive:#22c55e;--danger:#ef4444;--chart-1:#3b82f6;--chart-2:#ef4444;--chart-4:#a855f7;--chart-5:#9ca3af}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text-primary);padding:12px;min-height:100vh}
+.cv-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.cv-title{font-size:18px;font-weight:600;color:var(--text-primary)}
+.cv-nav{display:flex;gap:6px;align-items:center}
+.cv-nav button{background:var(--surface);border:1px solid var(--border);border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-primary);font-size:16px;touch-action:manipulation}
+.cv-nav button:active{background:var(--border)}
+.cv-nav select{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:14px}
+.cv-tabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--border);overflow-x:auto}
+.cv-tab{padding:10px 14px;font-size:13px;font-weight:600;color:var(--text-tertiary);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;touch-action:manipulation}
+.cv-tab.active{color:var(--text-primary);border-bottom-color:var(--text-primary)}
+.cv-panel{display:none}
+.cv-panel.active{display:block}
+.cv-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.cv-weekday{text-align:center;padding:8px 0;font-size:11px;color:var(--text-tertiary);background:var(--surface);font-weight:600}
+.cv-day{min-height:72px;background:var(--bg);padding:5px;cursor:pointer;position:relative}
+.cv-day:active{background:var(--surface)}
+.cv-day.other-month{background:var(--surface);color:var(--text-quaternary)}
+.cv-day.today{background:color-mix(in srgb,var(--accent) 8%,var(--bg))}
+.cv-day-num{font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:2px}
+.cv-day.other-month .cv-day-num{color:var(--text-quaternary)}
+.cv-day.today .cv-day-num{color:var(--accent)}
+.cv-day-total{font-size:10px;font-weight:700;color:var(--positive);margin-bottom:1px}
+.cv-items{display:flex;flex-direction:column;gap:1px}
+.cv-item{font-size:9px;padding:1px 4px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;background:color-mix(in srgb,var(--chart-1) 15%,transparent);color:var(--chart-1)}
+.cv-more{font-size:9px;color:var(--text-tertiary);padding:0 2px}
+.cv-form-panel{background:var(--surface-raised);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:12px}
+.cv-form-panel-title{font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.cv-form{display:flex;flex-direction:column;gap:10px}
+.cv-form label{font-size:12px;color:var(--text-secondary);font-weight:600}
+.cv-form input,.cv-form select{padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text-primary);font-size:15px;width:100%;-webkit-appearance:none}
+.cv-form input:focus,.cv-form select:focus{outline:2px solid var(--text-primary);outline-offset:0}
+.cv-form-row{display:flex;gap:10px}
+.cv-form-row > *{flex:1}
+.cv-form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+.cv-btn{padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation;min-height:44px}
+.cv-btn:active{background:var(--border)}
+.cv-btn.primary{background:var(--text-primary);color:var(--bg);border-color:var(--text-primary)}
+.cv-btn.danger{background:color-mix(in srgb,var(--danger) 15%,transparent);color:var(--danger);border-color:transparent}
+.cv-btn.ghost{background:transparent;border:none;color:var(--text-tertiary);padding:4px;font-size:18px;min-height:auto}
+.cv-sales-list{max-height:180px;overflow-y:auto;margin:6px 0}
+.cv-sale-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)}
+.cv-sale-row:last-child{border-bottom:none}
+.cv-sale-info{font-size:13px;color:var(--text-primary);font-weight:500}
+.cv-sale-price{font-size:13px;font-weight:700;color:var(--positive)}
+.cv-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.cv-stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px}
+.cv-stat-val{font-size:22px;font-weight:700;color:var(--text-primary);line-height:1.1}
+.cv-stat-label{font-size:11px;color:var(--text-tertiary);margin-top:3px}
+.cv-stat.positive .cv-stat-val{color:var(--positive)}
+.cv-stat.accent .cv-stat-val{color:var(--accent)}
+.cv-table{width:100%;border-collapse:collapse;font-size:13px}
+.cv-table th{text-align:left;padding:8px 10px;font-size:11px;font-weight:600;color:var(--text-tertiary);border-bottom:1px solid var(--border);background:var(--surface)}
+.cv-table td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text-primary)}
+.cv-table .num{text-align:right;font-weight:500}
+.cv-table .total-row td{font-weight:700;border-top:2px solid var(--border);border-bottom:none;background:var(--surface)}
+.cv-empty{text-align:center;padding:24px;color:var(--text-quaternary);font-size:13px}
+.cv-section-title{font-size:14px;font-weight:600;color:var(--text-primary);margin:16px 0 8px}
+</style>
+</head>
+<body>
+
+<div class="cv-header">
+  <div class="cv-title" id="cv-title"></div>
+  <div class="cv-nav">
+    <select id="year-select" onchange="changeYear(this.value)"></select>
+    <button onclick="changeMonth(-1)">&#9664;</button>
+    <button onclick="changeMonth(1)">&#9654;</button>
+  </div>
+</div>
+
+<div class="cv-tabs">
+  <button class="cv-tab active" onclick="switchTab('cal')" id="tab-cal">Calendário</button>
+  <button class="cv-tab" onclick="switchTab('month')" id="tab-month">Mensal</button>
+  <button class="cv-tab" onclick="switchTab('year')" id="tab-year">Anual</button>
+</div>
+
+<div class="cv-panel active" id="panel-cal">
+  <div class="cv-grid" id="cv-grid"></div>
+  <div id="form-container" style="display:none"></div>
+</div>
+
+<div class="cv-panel" id="panel-month">
+  <div class="cv-stats" id="month-stats"></div>
+  <div class="cv-section-title">Itens vendidos neste mês</div>
+  <div id="month-items"></div>
+</div>
+
+<div class="cv-panel" id="panel-year">
+  <div class="cv-stats" id="year-stats"></div>
+  <div class="cv-section-title">Vendas por mês</div>
+  <div id="year-months"></div>
+  <div class="cv-section-title">Top itens do ano</div>
+  <div id="year-items"></div>
+</div>
+
+<script>
+let currentDate=new Date();
+let selectedDate=null;
+let sales=JSON.parse(localStorage.getItem('cv_sales_mobile')||'{}');
+const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const semana=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+function fmtMoney(v){return v.toLocaleString('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+function getKey(d){return d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0')+'-'+d.getDate().toString().padStart(2,'0');}
+function parseKey(k){const p=k.split('-');return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));}
+function saveData(){localStorage.setItem('cv_sales_mobile',JSON.stringify(sales));}
+
+const yrSel=document.getElementById('year-select');
+const currentYear=new Date().getFullYear();
+for(let y=currentYear-5;y<=currentYear+2;y++){
+  const opt=document.createElement('option');opt.value=y;opt.textContent=y;
+  if(y===currentDate.getFullYear())opt.selected=true;
+  yrSel.appendChild(opt);
+}
+
+function changeYear(y){currentDate.setFullYear(parseInt(y));render();}
+function changeMonth(d){currentDate.setMonth(currentDate.getMonth()+d);render();}
+function switchTab(t){
+  document.querySelectorAll('.cv-tab').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.cv-panel').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.getElementById('panel-'+t).classList.add('active');
+  if(t==='month')renderMonthSummary();
+  if(t==='year')renderYearSummary();
+}
+
+function getDayTotal(key){
+  const list=sales[key]||[];
+  return list.reduce((s,it)=>s+(it.price*it.qty),0);
+}
+
+function render(){
+  const y=currentDate.getFullYear(),m=currentDate.getMonth();
+  document.getElementById('cv-title').textContent=meses[m]+' '+y;
+  yrSel.value=y;
+  const first=new Date(y,m,1);
+  const last=new Date(y,m+1,0);
+  const startDay=first.getDay();
+  const totalDays=last.getDate();
+  const prevLast=new Date(y,m,0).getDate();
+  let html='';
+  semana.forEach(d=>html+='<div class="cv-weekday">'+d+'</div>');
+  for(let i=startDay-1;i>=0;i--){
+    html+='<div class="cv-day other-month"><div class="cv-day-num">'+(prevLast-i)+'</div></div>';
+  }
+  const todayKey=getKey(new Date());
+  for(let d=1;d<=totalDays;d++){
+    const date=new Date(y,m,d);
+    const key=getKey(date);
+    const isToday=key===todayKey;
+    const daySales=sales[key]||[];
+    const total=getDayTotal(key);
+    html+='<div class="cv-day'+(isToday?' today':'')+'" onclick="openDay('+y+','+m+','+d+')">';
+    html+='<div class="cv-day-num">'+d+'</div>';
+    if(total>0) html+='<div class="cv-day-total">'+fmtMoney(total)+'</div>';
+    html+='<div class="cv-items">';
+    daySales.slice(0,2).forEach(s=>{
+      html+='<div class="cv-item">'+s.item+' <span>x'+s.qty+'</span></div>';
+    });
+    if(daySales.length>2) html+='<div class="cv-more">+'+(daySales.length-2)+'</div>';
+    html+='</div></div>';
+  }
+  const rem=(7-((startDay+totalDays)%7))%7;
+  for(let d=1;d<=rem;d++) html+='<div class="cv-day other-month"><div class="cv-day-num">'+d+'</div></div>';
+  document.getElementById('cv-grid').innerHTML=html;
+}
+
+function openDay(y,m,d){
+  selectedDate=new Date(y,m,d);
+  const key=getKey(selectedDate);
+  const list=sales[key]||[];
+  const total=getDayTotal(key);
+  let salesHtml='';
+  if(list.length>0){
+    salesHtml='<div class="cv-sales-list">';
+    list.forEach((s,i)=>{
+      salesHtml+='<div class="cv-sale-row">'+
+        '<div class="cv-sale-info">'+s.item+' x'+s.qty+'</div>'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+        '<div class="cv-sale-price">'+fmtMoney(s.price*s.qty)+'</div>'+
+        '<button class="cv-btn danger" style="padding:4px 10px;font-size:12px;min-height:32px" onclick="deleteSale(\''+key+'\','+i+')">X</button>'+
+        '</div></div>';
+    });
+    salesHtml+='<div style="text-align:right;font-size:13px;font-weight:600;color:var(--text-primary);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">Total: <span style="color:var(--positive)">'+fmtMoney(total)+'</span></div>';
+    salesHtml+='</div>';
+  }
+  const container=document.getElementById('form-container');
+  container.style.display='block';
+  container.innerHTML=
+    '<div class="cv-form-panel">'+
+    '<div class="cv-form-panel-title">'+
+    '<span>Vendas de '+d+' '+meses[m]+' '+y+'</span>'+
+    '<button class="cv-btn ghost" onclick="closeForm()">&#10005;</button>'+
+    '</div>'+
+    salesHtml+
+    '<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:10px">'+
+    '<div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">Nova venda</div>'+
+    '<div class="cv-form">'+
+    '<div class="cv-form-row">'+
+    '<div><label>Item / Produto</label><input type="text" id="sale-item" placeholder="Ex: Curso Online" enterkeyhint="next"></div>'+
+    '<div><label>Preço (€)</label><input type="number" id="sale-price" placeholder="0,00" step="0.01" min="0" enterkeyhint="next"></div>'+
+    '</div>'+
+    '<div class="cv-form-row">'+
+    '<div><label>Quantidade</label><input type="number" id="sale-qty" value="1" min="1" step="1" enterkeyhint="done"></div>'+
+    '<div style="display:flex;align-items:flex-end"><button class="cv-btn primary" style="width:100%" onclick="saveSale()">Adicionar</button></div>'+
+    '</div>'+
+    '</div></div></div>';
+  container.scrollIntoView({behavior:'smooth',block:'nearest'});
+  setTimeout(()=>document.getElementById('sale-item').focus(),100);
+}
+
+function closeForm(){document.getElementById('form-container').style.display='none';}
+
+function saveSale(){
+  const item=document.getElementById('sale-item').value.trim();
+  const price=parseFloat(document.getElementById('sale-price').value.replace(',','.'));
+  const qty=parseInt(document.getElementById('sale-qty').value)||1;
+  if(!item){alert('Digite o nome do item');return;}
+  if(isNaN(price)||price<=0){alert('Digite um preço válido');return;}
+  const key=getKey(selectedDate);
+  if(!sales[key])sales[key]=[];
+  sales[key].push({item,price,qty});
+  saveData();
+  const d=selectedDate;
+  openDay(d.getFullYear(),d.getMonth(),d.getDate());
+  render();
+}
+
+function deleteSale(key,idx){
+  sales[key].splice(idx,1);
+  if(sales[key].length===0)delete sales[key];
+  saveData();
+  const d=parseKey(key);
+  openDay(d.getFullYear(),d.getMonth(),d.getDate());
+  render();
+}
+
+function getMonthData(y,m){
+  let total=0,count=0,items={};
+  Object.keys(sales).forEach(k=>{
+    const d=parseKey(k);
+    if(d.getFullYear()===y&&d.getMonth()===m){
+      sales[k].forEach(s=>{
+        total+=s.price*s.qty;count+=s.qty;
+        if(!items[s.item])items[s.item]={qty:0,total:0};
+        items[s.item].qty+=s.qty;items[s.item].total+=s.price*s.qty;
+      });
+    }
+  });
+  return{total,count,items};
+}
+
+function getYearData(y){
+  let total=0,count=0,items={},monthly=Array(12).fill(null).map(()=>({total:0,count:0}));
+  Object.keys(sales).forEach(k=>{
+    const d=parseKey(k);
+    if(d.getFullYear()===y){
+      sales[k].forEach(s=>{
+        total+=s.price*s.qty;count+=s.qty;
+        monthly[d.getMonth()].total+=s.price*s.qty;monthly[d.getMonth()].count+=s.qty;
+        if(!items[s.item])items[s.item]={qty:0,total:0};
+        items[s.item].qty+=s.qty;items[s.item].total+=s.price*s.qty;
+      });
+    }
+  });
+  return{total,count,items,monthly};
+}
+
+function renderMonthSummary(){
+  const y=currentDate.getFullYear(),m=currentDate.getMonth();
+  const data=getMonthData(y,m);
+  const avg=data.count>0?data.total/data.count:0;
+  document.getElementById('month-stats').innerHTML=
+    '<div class="cv-stat positive"><div class="cv-stat-val">'+fmtMoney(data.total)+'</div><div class="cv-stat-label">Total vendido</div></div>'+
+    '<div class="cv-stat"><div class="cv-stat-val">'+data.count+'</div><div class="cv-stat-label">Unidades</div></div>'+
+    '<div class="cv-stat"><div class="cv-stat-val">'+fmtMoney(avg)+'</div><div class="cv-stat-label">Média/unidade</div></div>'+
+    '<div class="cv-stat accent"><div class="cv-stat-val">'+Object.keys(data.items).length+'</div><div class="cv-stat-label">Itens</div></div>';
+  const keys=Object.keys(data.items).sort((a,b)=>data.items[b].total-data.items[a].total);
+  if(keys.length===0){document.getElementById('month-items').innerHTML='<div class="cv-empty">Nenhuma venda este mês</div>';return;}
+  let html='<table class="cv-table"><thead><tr><th>Item</th><th class="num">Qtd</th><th class="num">Total</th></tr></thead><tbody>';
+  keys.forEach(name=>{const it=data.items[name];html+='<tr><td>'+name+'</td><td class="num">'+it.qty+'</td><td class="num">'+fmtMoney(it.total)+'</td></tr>';});
+  html+='<tr class="total-row"><td>Total</td><td class="num">'+data.count+'</td><td class="num">'+fmtMoney(data.total)+'</td></tr></tbody></table>';
+  document.getElementById('month-items').innerHTML=html;
+}
+
+function renderYearSummary(){
+  const y=currentDate.getFullYear();
+  const data=getYearData(y);
+  const avgMonth=data.total/12;
+  const avgUnit=data.count>0?data.total/data.count:0;
+  document.getElementById('year-stats').innerHTML=
+    '<div class="cv-stat positive"><div class="cv-stat-val">'+fmtMoney(data.total)+'</div><div class="cv-stat-label">Total anual</div></div>'+
+    '<div class="cv-stat"><div class="cv-stat-val">'+data.count+'</div><div class="cv-stat-label">Unidades</div></div>'+
+    '<div class="cv-stat"><div class="cv-stat-val">'+fmtMoney(avgMonth)+'</div><div class="cv-stat-label">Média mensal</div></div>'+
+    '<div class="cv-stat accent"><div class="cv-stat-val">'+fmtMoney(avgUnit)+'</div><div class="cv-stat-label">Média/unidade</div></div>';
+  let mhtml='<table class="cv-table"><thead><tr><th>Mês</th><th class="num">Qtd</th><th class="num">Total</th></tr></thead><tbody>';
+  data.monthly.forEach((m,i)=>{if(m.total>0)mhtml+='<tr><td>'+meses[i]+'</td><td class="num">'+m.count+'</td><td class="num">'+fmtMoney(m.total)+'</td></tr>';});
+  mhtml+='<tr class="total-row"><td>Total</td><td class="num">'+data.count+'</td><td class="num">'+fmtMoney(data.total)+'</td></tr></tbody></table>';
+  document.getElementById('year-months').innerHTML=mhtml;
+  const keys=Object.keys(data.items).sort((a,b)=>data.items[b].total-data.items[a].total);
+  if(keys.length===0){document.getElementById('year-items').innerHTML='<div class="cv-empty">Nenhuma venda este ano</div>';return;}
+  let ihtml='<table class="cv-table"><thead><tr><th>Item</th><th class="num">Qtd</th><th class="num">Total</th></tr></thead><tbody>';
+  keys.forEach(name=>{const it=data.items[name];ihtml+='<tr><td>'+name+'</td><td class="num">'+it.qty+'</td><td class="num">'+fmtMoney(it.total)+'</td></tr>';});
+  ihtml+='</tbody></table>';
+  document.getElementById('year-items').innerHTML=ihtml;
+}
+
+render();
+</script>
+</body>
+</html>
